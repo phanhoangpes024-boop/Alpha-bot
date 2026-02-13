@@ -1,4 +1,4 @@
-// scrapers/medrxiv.js - Scraper cho medRxiv
+// scrapers/medrxiv.js - Scraper cho medRxiv (SỬ DỤNG ZENROWS)
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -14,12 +14,19 @@ export async function scrapeMedRxiv(url) {
             abstractUrl = url.replace('.full-text', '');
         }
 
-        // Lấy nội dung tóm tắt
-        const abstractResponse = await axios.get(abstractUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
+        // ===== SỬ DỤNG ZENROWS API =====
+        const zenrowsApiKey = process.env.ZENROWS_API_KEY;
+
+        if (!zenrowsApiKey) {
+            throw new Error('ZENROWS_API_KEY chưa được cấu hình trong .env');
+        }
+
+        console.log('🔧 Sử dụng ZenRows API để crawl medRxiv...');
+
+        // Lấy nội dung tóm tắt qua ZenRows
+        const zenrowsAbstractUrl = `https://api.zenrows.com/v1/?url=${encodeURIComponent(abstractUrl)}&apikey=${zenrowsApiKey}&js_render=true`;
+
+        const abstractResponse = await axios.get(zenrowsAbstractUrl);
 
         const $ = cheerio.load(abstractResponse.data);
 
@@ -90,13 +97,11 @@ export async function scrapeMedRxiv(url) {
         // Lấy PDF URL
         data.pdfUrl = $('meta[name="citation_pdf_url"]').attr('content') || '';
 
-        // Lấy toàn văn (Full Text)
+        // Lấy toàn văn (Full Text) qua ZenRows
         try {
-            const fullTextResponse = await axios.get(fullTextUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            });
+            const zenrowsFullTextUrl = `https://api.zenrows.com/v1/?url=${encodeURIComponent(fullTextUrl)}&apikey=${zenrowsApiKey}&js_render=true`;
+
+            const fullTextResponse = await axios.get(zenrowsFullTextUrl);
 
             const $full = cheerio.load(fullTextResponse.data);
             const fullTextParts = [];
@@ -139,7 +144,7 @@ export async function scrapeMedRxiv(url) {
             }
         });
 
-        console.log('✅ medRxiv scraper thành công');
+        console.log('✅ medRxiv scraper (ZenRows) thành công');
         return { success: true, data };
 
     } catch (error) {

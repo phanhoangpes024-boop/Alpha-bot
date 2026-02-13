@@ -98,7 +98,7 @@ Trả về JSON với format:
     }
     
     const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4.1-mini-2025-04-14",
         messages: [
             { role: "system", content: "Bạn là biên tập viên y khoa chuyên nghiệp, viết bài bằng tiếng Việt." },
             { role: "user", content: prompt }
